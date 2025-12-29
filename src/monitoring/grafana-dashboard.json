@@ -1,0 +1,348 @@
+{
+  "dashboard": {
+    "title": "VideoAgent Performance Dashboard",
+    "tags": ["videoagent", "monitoring", "performance"],
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Health Overview",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "up{job=\"videoagent-api\"}",
+            "legendFormat": "API Status",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "text": {},
+          "textMode": "value_and_name",
+          "colorMode": "background",
+          "graphMode": "none"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "value": "0", "text": "DOWN"},
+              {"type": "value", "value": "1", "text": "UP"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Request Rate (req/sec)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {
+            "expr": "sum(rate(videoagent_http_requests_total[5m])) by (method, status_code)",
+            "legendFormat": "{{method}} - {{status_code}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Requests/sec"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "pointradius": 5,
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true,
+          "avg": true
+        }
+      },
+      {
+        "id": 3,
+        "title": "API Latency (P50, P95, P99)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(videoagent_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(videoagent_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(videoagent_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P99",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 0,
+        "linewidth": 2
+      },
+      {
+        "id": 4,
+        "title": "Error Rate (%)",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 12},
+        "targets": [
+          {
+            "expr": "sum(rate(videoagent_http_requests_total{status_code=~\"5..\"}[5m])) / sum(rate(videoagent_http_requests_total[5m])) * 100",
+            "legendFormat": "5xx Error Rate",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(videoagent_http_requests_total{status_code=~\"4..\"}[5m])) / sum(rate(videoagent_http_requests_total[5m])) * 100",
+            "legendFormat": "4xx Error Rate",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "label": "Error Rate"},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [5], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High 5xx Error Rate",
+          "noDataState": "no_data"
+        }
+      },
+      {
+        "id": 5,
+        "title": "Video Processing Queue",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 12},
+        "targets": [
+          {
+            "expr": "videoagent_queue_size",
+            "legendFormat": "Queue Size",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(videoagent_queue_processing_duration_seconds_count[5m]) * 60",
+            "legendFormat": "Processing Rate (jobs/min)",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Jobs"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Video Processing Duration (by format)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(videoagent_video_processing_duration_seconds_bucket[10m])) by (le, format))",
+            "legendFormat": "P95 - {{format}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Circuit Breaker Status",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 18},
+        "targets": [
+          {
+            "expr": "videoagent_circuit_breaker_state{name=\"mageagent\"}",
+            "legendFormat": "MageAgent CB",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "textMode": "value_and_name",
+          "colorMode": "background"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "value": "0", "text": "CLOSED"},
+              {"type": "value", "value": "1", "text": "HALF_OPEN"},
+              {"type": "value", "value": "2", "text": "OPEN"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 2, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Cache Hit Rate",
+        "type": "gauge",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 18},
+        "targets": [
+          {
+            "expr": "sum(rate(videoagent_cache_hits_total[5m])) / (sum(rate(videoagent_cache_hits_total[5m])) + sum(rate(videoagent_cache_misses_total[5m]))) * 100",
+            "legendFormat": "Hit Rate",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 50, "color": "yellow"},
+                {"value": 80, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Active WebSocket Connections",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 22},
+        "targets": [
+          {
+            "expr": "videoagent_websocket_active_connections",
+            "legendFormat": "Active Connections",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Connections"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Memory Usage",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 26},
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes{job=\"videoagent-api\"} / (1024 * 1024 * 1024)",
+            "legendFormat": "Memory Usage (GB)",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "decgbytes", "label": "Memory"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 11,
+        "title": "CPU Usage",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 26},
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total{job=\"videoagent-api\"}[5m]) * 100",
+            "legendFormat": "CPU Usage (%)",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "label": "CPU"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 12,
+        "title": "MageAgent Request Duration",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(videoagent_mageagent_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P95",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Rate Limit Rejections",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 32},
+        "targets": [
+          {
+            "expr": "sum(rate(videoagent_http_requests_total{status_code=\"429\"}[5m])) * 60",
+            "legendFormat": "429 Rate Limited (req/min)",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqpm", "label": "Requests/min"},
+          {"format": "short"}
+        ]
+      }
+    ]
+  },
+  "overwrite": true
+}
