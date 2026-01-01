@@ -1,0 +1,115 @@
+{
+  "name": "nexus-videoagent",
+  "displayName": "VideoAgent - AI Video Production & Analysis",
+  "version": "1.0.0",
+  "description": "AI-powered video production and analysis platform. Automated editing, content generation, transcription, translation, and multi-platform distribution.",
+  "developer": {
+    "name": "Adverant",
+    "url": "https://adverant.ai",
+    "email": "plugins@adverant.ai",
+    "verified": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adverant/Adverant-Nexus-Plugin-VideoAgent"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "video-production",
+    "video-editing",
+    "transcription",
+    "content-creation",
+    "ai-video",
+    "distribution"
+  ],
+  "nexus": {
+    "minVersion": "1.0.0",
+    "executionMode": "mcp_container",
+    "isolationLevel": 2,
+    "capabilities": [
+      "video-generation",
+      "auto-editing",
+      "transcription",
+      "translation",
+      "content-analysis",
+      "distribution"
+    ],
+    "permissions": [
+      "network:external",
+      "filesystem:temp",
+      "service:mageagent",
+      "service:fileprocess"
+    ],
+    "entrypoint": "dist/index.js",
+    "healthCheck": "/health",
+    "readinessCheck": "/ready",
+    "livenessCheck": "/live"
+  },
+  "resources": {
+    "cpuMillicores": 4000,
+    "memoryMB": 8192,
+    "diskGB": 100,
+    "timeoutMs": 3600000,
+    "maxConcurrentJobs": 3
+  },
+  "api": {
+    "version": "v1",
+    "basePath": "/api/v1/video",
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/projects",
+        "description": "Create video project"
+      },
+      {
+        "method": "POST",
+        "path": "/projects/:id/generate",
+        "description": "Generate video content"
+      },
+      {
+        "method": "POST",
+        "path": "/transcribe",
+        "description": "Transcribe video"
+      },
+      {
+        "method": "POST",
+        "path": "/distribute",
+        "description": "Distribute to platforms"
+      }
+    ]
+  },
+  "pricing": {
+    "model": "usage_based",
+    "currency": "USD",
+    "tiers": [
+      {
+        "name": "starter",
+        "displayName": "Starter",
+        "priceMonthly": 4900,
+        "limits": { "minutesPerMonth": 60 },
+        "features": ["basic-editing", "transcription"]
+      },
+      {
+        "name": "creator",
+        "displayName": "Creator",
+        "priceMonthly": 14900,
+        "limits": { "minutesPerMonth": 300 },
+        "features": ["ai-editing", "translation", "multi-format"],
+        "popular": true
+      },
+      {
+        "name": "studio",
+        "displayName": "Studio",
+        "priceMonthly": 49900,
+        "limits": { "minutesPerMonth": -1 },
+        "features": ["unlimited", "priority-processing", "api-access", "white-label"]
+      }
+    ]
+  },
+  "marketplace": {
+    "category": "content-creation",
+    "subcategory": "video",
+    "featured": true,
+    "tags": ["video", "production", "editing", "transcription", "content-creation"]
+  }
+}
